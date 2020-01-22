@@ -199,8 +199,6 @@ iMode = opzionale, di default uguale a 0 per RGB. 1 = Greyscale
 in uscita --> valori RGB compresi tra 0 e 255
 */
 
-ia = 256
-
 kred = (kV >> 16) & 255
 kgreen = (kV >> 8) & 255
 kblue = kV & 255
