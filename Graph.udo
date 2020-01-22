@@ -226,7 +226,7 @@ iDur = filelen(Sfile)
 iN = ceil(iDur * sr)
 
 iSig = ftgen(100, 0, iN, 1, Sfile, 0, 0, 0)
-ax = tablei:a(1/iDur * iN, iSig) ;non so perchè serva fare questo, so solo che funziona!
+ax = tablei:a(1/iDur * iN, iSig)
 
 iW = iWidth
 iH = iHeight
