@@ -136,8 +136,6 @@ i2pi = 2 * $M_PI
 iMaxFreq = iFreqSup
 iyFreq = iMaxFreq/iH
 
-kY init 0
-
 printf("\n", 1)
 
 ky init iH - 1
