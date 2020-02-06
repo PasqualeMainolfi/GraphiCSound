@@ -22,12 +22,12 @@ SpectPlot(Simage, iFreqSup, iDistrModel, iPort, iDur, iColorMode, iFun, iOct)
 Simage = stringa "nomefile.png"
 iFreqSup = limite frequenziale superiore
 iDistrModel = modello di distribuzione frequenziale: 0 = lineare, 1 = esponenziale, 2 = logaritmica, 3 = mel, 4 = temperata, 5 = scala naturale, 6 = scala pitagorica
+iSogliaAmpiezza = soglia sotto cui escludere ampiezze. Tutto ciò al di sotto viene escluso
 iPortAmp = portamento sull'ampiezza (in sec.)
 iPan = 0 e 1 (0 = solo al centro, 1 = decodifica stereo)
 iPortPan = portamento panning (in sec.)
 iDur = durata complessiva segnale in uscita
 iColorMode = color inversion (0 ---> black = no sound (white on black). 1 ---> white = no sound (black on white))
-iFun = Function number
 iOct = default 1. Numero di ottave (valore intero, opzionale solo per scala temperata e naturale). Es. 1 = intero range una sola ottava, 2 = intero range due ottave, etc...
 
 N.B.
@@ -39,15 +39,15 @@ N.B.
 Simg = "img_kand_2.png"
 iMaxFreq = 1200
 iDistrModel = 6
+iS_amp = .05
 iPortAmp = .1
 iPan = 1
 iPortPan = .01
 iDur = p3
 iColorMode = 1
-iFunNumber = 1
 iOct = 5
 
-aL, aR SpectPlot Simg, iMaxFreq, iDistrModel, iPortAmp, iPan, iPortPan, iDur, iColorMode, iFunNumber, iOct
+aL, aR SpectPlot Simg, iMaxFreq, iDistrModel, iS_amp, iPortAmp, iPan, iPortPan, iDur, iColorMode, iOct
 aL = aL * 5
 aR = aR * 5
 
