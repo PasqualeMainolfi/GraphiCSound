@@ -99,8 +99,8 @@ xout(kFreq)
     endop
 
 
-    opcode SpectPlot, aa, Siiiiiiiip
-Simage, iFreqSup, iDistrModel, iPortAmp, iPan, iPortPan, iDur, iColorMode, iFun, iOct xin
+    opcode SpectPlot, aa, Siiiiiiiiip
+Simage, iFreqSup, iDistrModel, iSogliaAmpiezza, iSmoothModel, iPortAmp, iPan, iPortPan, iDur, iColorMode, iOct xin
 
 /*
 CONVERTE UN'IMMAGINE .PNG IN IMMAGINE SPETTROGRAFICA (using wavetable!)
@@ -108,12 +108,13 @@ CONVERTE UN'IMMAGINE .PNG IN IMMAGINE SPETTROGRAFICA (using wavetable!)
 Simage = stringa "nomefile.png"
 iFreqSup = massima frequenza superiore
 iDistrModel = modello di distribuzione frequenziale: 0 = lineare, 1 = esponenziale, 2 = logaritmica, 3 = mel, 4 = temperata, 5 = scala naturale, 6 = scala pitagorica
+iSogliaAmpiezza = soglia sotto cui escludere ampiezze
+iSmoothModel = modello di smusso ampiezza (0 = portk, 1 = lineto)
 iPortAmp = portamento sull'ampiezza (in sec.)
 iPan = 0 e 1 (0 = solo al centro, 1 = decodifica stereo)
 iPortPan = portamento panning (in sec.)
 iDur = durata complessiva out
 iColorMode = color inversion (0 ---> black = no sound (white on black). 1 ---> white = no sound (black on white))
-iFun = Function number
 iOct = Divisione in ottave (valore intero, solo per scala temperata, naturale). Es. 1 = intero range una sola ottava, 2 = intero range due ottave, etc...
 
 N.B.
@@ -127,9 +128,9 @@ iW, iH imagesize img
 iSampleDur = floor(iDur * sr)
 iN = iSampleDur
 
-iTabLeft = ftgen(iFun, 0, -iN, 2, 0)
-iTabRight = ftgen(iFun + 1, 0, -iN, 2, 0)
-iEnvAmp = ftgen(iFun + 2, 0, 16384, 20, 2)
+iTabLeft = ftgen(0, 0, -iN, 2, 0)
+iTabRight = ftgen(0, 0, -iN, 2, 0)
+iEnvAmp = ftgen(0, 0, 16384, 20, 2)
 
 i2pi = 2 * $M_PI
 
@@ -143,9 +144,17 @@ until (ky == 0) do
     kx = 0
     until (kx == iN) do
         kred, kgreen, kblue imagegetpixel img, Scale:k(kx, 0, 1, 0, iN), Scale:k(ky, 0, 1, iH - 1, 0)
-        kAmpRGB = portk(abs(iColorMode - ((kred + kgreen + kblue)/3)), iPortAmp) ;ampiezza da RGB
-        kPan = portk((random:k(0, 1) + (kred + kgreen + kblue))/4, iPortPan) ;pan
-        kVol = tablei:k(Scale(kx, 0, ftlen(iEnvAmp), 0, iN), iEnvAmp) * kAmpRGB ;applicazione inviluppo
+        kV_rgb = abs(iColorMode - ((kred + kgreen + kblue)/3)) ;ampiezza da RGB
+        kV_pass = (kV_rgb > iSogliaAmpiezza ? kV_rgb : 0)
+
+        if(iSmoothModel = 0) then
+            kAmpRGB = portk:k(kV_pass, iPortAmp)
+            elseif(iSmoothModel = 1) then
+                kAmpRGB = lineto:k(kV_pass, iPortAmp)
+            endif
+
+        kPan = portk:k((random:k(0, 1) + (kred + kgreen + kblue))/4, iPortPan) ;pan
+        kVol = tablei:k(Scale(kx, 0, ftlen(iEnvAmp), 0, iN), iEnvAmp) * kAmpRGB ;applicazione inviluppo generale
         kFreq = DistribuzioneFrequenze(iMaxFreq, iH, ky, iDur, iDistrModel, iOct) ;modello distributivo delle frequenze
 
         if(iPan = 0) then
@@ -221,11 +230,13 @@ Sfile, iWidth, iHeight, iMaxFreq, iColorMode, iPortAmp, iPortFreq, iPortEnv, iTy
 iDur = filelen(Sfile)
 iN = ceil(iDur * sr)
 
-iSig = ftgen(100, 0, iN, 1, Sfile, 0, 0, 0)
+iSig = ftgen(0, 0, iN, 1, Sfile, 0, 0, 0)
 ax = tablei:a(1/iDur * iN, iSig)
 
 iW = iWidth
 iH = iHeight
+
+i2pi = 2 * $M_PI
 
 imgNew = imagecreate(iW, iH)
 
@@ -241,14 +252,14 @@ while (kj <= iN) do
 
 
         if(iType = 0) then
-            kh = portk(Scale(kf, 1, 0, iMaxFreq/iH, iMaxFreq), iPortFreq)
+            kh = portk(Scale(i2pi * kf, 1, 0, (i2pi * iMaxFreq)/iH, i2pi * iMaxFreq), iPortFreq)
             ;kV = (10^(ka/20)) ;conversione da dB a lineare (antilogaritmo)
             kV = sqrt(kSig^2) ;valore assoluto
-            kO = sqrt(kSig^2) * sin(kf)
+            kO = sqrt(kSig^2) * sin(i2pi * kf)
             elseif(iType = 1) then
-                kh = portk(Scale(kFreq, 1, 0, iMaxFreq/iH, iMaxFreq), iPortFreq)
+                kh = portk(Scale(i2pi * kFreq, 1, 0, (i2pi * iMaxFreq)/iH, i2pi * iMaxFreq), iPortFreq)
                 kV = kAmp
-                kO = kAmp * sin(kf)
+                kO = kAmp * sin(i2pi * kf)
             endif
 
     kred, kgreen, kblue IntToRGB portk(kV, iPortAmp) * 2^24, iColorMode
@@ -256,19 +267,24 @@ while (kj <= iN) do
     kG = abs(iColorMode - Scale(kgreen, 0, 1, 0, 255))
     kB = abs(iColorMode - Scale(kblue, 0, 1, 0, 255))
 
+
         if(iPlot = 0) then
             imagesetpixel(imgNew, kw, kh, kR, kG, kB)
             elseif(iPlot = 1) then
                 imagesetpixel(imgNew, kw, portk(Scale(kV, 1, 0, 0, 1), iPortEnv), 1, 1, 1)
-                elseif(iPlot = 2) then
-                    imagesetpixel(imgNew, kw, portk(Scale(kO, 1, 0, -1, 1), iPortEnv), kR, kG, kB)
-                    elseif(iPlot = 3) then
-                        imagesetpixel(imgNew, kw, kh, kR, kG, kB)
-                        imagesetpixel(imgNew, kw, portk(Scale(kV, 1, 0, 0, 1), iPortEnv), 1, 1, 1)
-                    endif
+            elseif(iPlot = 2) then
+                imagesetpixel(imgNew, kw, portk(Scale(kO, 1, 0, -1, 1), iPortEnv), kR, kG, kB)
+            elseif(iPlot = 3) then
+                imagesetpixel(imgNew, kw, kh, kR, kG, kB)
+                imagesetpixel(imgNew, kw, portk(Scale(kV, 1, 0, 0, 1), iPortEnv), 1, 1, 1)
+            endif
 
     kj += 1
 od
-
 xout(imgNew)
     endop
+
+
+;====================================================
+;====================================================
+;====================================================
